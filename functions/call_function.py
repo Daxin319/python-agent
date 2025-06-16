@@ -7,7 +7,7 @@ from functions.run_python import run_python
 
 def call_function(function_call_part, verbose=False):
     function_name = function_call_part.name
-    # Convert protobuf Map to a Python dict
+    # Convert function call args to a Python dict
     args = {key: val for key, val in function_call_part.args.items()}
 
     if verbose:

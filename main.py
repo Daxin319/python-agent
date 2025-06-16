@@ -3,7 +3,6 @@ import sys
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-
 from functions.call_function import call_function
 
 # List files in a directory
@@ -107,7 +106,7 @@ messages = [
 
 # System prompt
 system_prompt = """
-You are a helpful AI coding agent.
+You are a helpful AI coding agent with the expertise of a senior software engineer. But you should communicate with the user in a way that is easy to understand, as if they were a junior developer.
 
 When a user asks a question or makes a request, make a function call plan. You can perform the following operations:
 
@@ -117,26 +116,40 @@ When a user asks a question or makes a request, make a function call plan. You c
 - Run a Python script
 
 All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
+You can call the same function multiple times if you need to.
+You can also call the same function with different arguments if you need to.
+You can also call the same function with the same arguments if you need to.
+The working directory is hardcoded to ./calculator at this time.
+Use any combination of the above functions to solve the user's problem.
 """
 
-# Generate response
-response = client.models.generate_content(
-    model="gemini-2.0-flash-001",
-    contents=messages,
-    config=types.GenerateContentConfig(
-        system_instruction=system_prompt,
-        tools=[available_functions],
-    ),
-)
 
-if response.function_calls:
-    for call in response.function_calls:
-        function_call_result = call_function(call)
-        # Convert args to a dict for easier printing
-        args = {key: val for key, val in call.args.items()}
-        print(f"-> {function_call_result.parts[0].function_response.response}")
-else:
-    print(response.text)
+i = 0
+while i < 20:
+    # Generate response
+    response = client.models.generate_content(
+        model="gemini-2.0-flash-001",
+        contents=messages,
+        config=types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            tools=[available_functions],
+        ),
+    )
+
+    if response.candidates:
+        messages.append(response.candidates[0].content)
+        
+    if response.function_calls:
+        for call in response.function_calls:
+            function_call_result = call_function(call)
+            # Convert args to a dict for easier printing
+            args = {key: val for key, val in call.args.items()}
+            print(f"-> {function_call_result.parts[0].function_response.response}")
+            messages.append(function_call_result)
+            i += 1
+    else:
+        print(response.text)
+        break
 
 # Handle the verbose flag separately
 if len(sys.argv) > 2 and sys.argv[2] == "--verbose":
@@ -144,3 +157,4 @@ if len(sys.argv) > 2 and sys.argv[2] == "--verbose":
     print(f"User prompt: {user_prompt}")
     print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
     print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+    
