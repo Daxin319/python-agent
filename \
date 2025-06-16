@@ -4,8 +4,6 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-from functions.call_function import call_function
-
 # List files in a directory
 schema_get_files_info = types.FunctionDeclaration(
     name="get_files_info",
@@ -131,10 +129,9 @@ response = client.models.generate_content(
 
 if response.function_calls:
     for call in response.function_calls:
-        function_call_result = call_function(call)
         # Convert args to a dict for easier printing
         args = {key: val for key, val in call.args.items()}
-        print(f"-> {function_call_result.parts[0].function_response.response}")
+        print(f"Function call: {call.name}({args})")
 else:
     print(response.text)
 
